@@ -9,6 +9,7 @@ const Home = () => {
 
   if (!user) return <Landing />;
   if (user.role === 'Admin') return <Navigate to="/admin" />;
+  if (user.role === 'Maintenance') return <Navigate to="/maintenance" />;
   
   return <Dashboard />;
 };

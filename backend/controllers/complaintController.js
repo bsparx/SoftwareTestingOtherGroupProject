@@ -78,7 +78,7 @@ const assignComplaint = async (req, res) => {
 // @access  Private (Admin, Maintenance)
 const updateComplaintStatus = async (req, res) => {
   try {
-    const { status } = req.body; // 'Open', 'In Progress', 'Resolved'
+    const { status, resolutionRemarks } = req.body;
 
     const complaint = await Complaint.findById(req.params.id);
 
@@ -91,7 +91,20 @@ const updateComplaintStatus = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to update this complaint' });
     }
 
+    // Checking state transition for Testing Course
+    if (req.user.role === 'Maintenance') {
+      if (complaint.status === 'Open' && status === 'Resolved') {
+        return res.status(400).json({ message: 'Cannot jump directly from Open to Resolved. Must go through In Progress.' });
+      }
+      if (status === 'Resolved' && (!resolutionRemarks || resolutionRemarks.trim() === '')) {
+         return res.status(400).json({ message: 'Resolution remarks are required to mark a ticket as Resolved.' });
+      }
+    }
+
     complaint.status = status;
+    if (resolutionRemarks) {
+      complaint.resolutionRemarks = resolutionRemarks;
+    }
     const updatedComplaint = await complaint.save();
 
     res.json(updatedComplaint);

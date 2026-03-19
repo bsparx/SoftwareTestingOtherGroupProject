@@ -20,6 +20,11 @@ const complaintSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  urgency: {
+    type: String,
+    enum: ['High', 'Medium', 'Low'],
+    default: 'Medium'
+  },
   status: {
     type: String,
     enum: ['Open', 'In Progress', 'Resolved'],
@@ -29,6 +34,10 @@ const complaintSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     default: null
+  },
+  resolutionRemarks: {
+    type: String,
+    default: ''
   }
 }, {
   timestamps: true

@@ -18,15 +18,20 @@ const Dashboard = () => {
   // Tabs State
   const [activeTab, setActiveTab] = useState('maintenance');
 
-  // Form Fields
+  // Form Fields (Tasks)
   const [category, setCategory] = useState('Plumbing');
   const [description, setDescription] = useState('');
+
+  // Form Fields (Visitors)
+  const [visitorName, setVisitorName] = useState('');
+  const [visitorCNIC, setVisitorCNIC] = useState('');
+  const [expectedDate, setExpectedDate] = useState('');
 
   // Fetch data on load
   useEffect(() => {
     fetchComplaints();
-    if (user?.role === 'Admin') {
-      fetchStaff();
+    if (user?.role === 'Resident') {
+      fetchVisitors();
     }
   }, [user]);
 
@@ -37,6 +42,16 @@ const Dashboard = () => {
       setComplaints(data);
     } catch (error) {
       console.error('Error fetching complaints', error);
+    }
+  };
+
+  const fetchVisitors = async () => {
+    try {
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      const { data } = await axios.get('http://localhost:5000/api/visitors', config);
+      setVisitors(data);
+    } catch (error) {
+      console.error('Error fetching visitors', error);
     }
   };
 
@@ -64,10 +79,26 @@ const Dashboard = () => {
     }
   };
 
+  const submitVisitor = async (e) => {
+    e.preventDefault();
+    try {
+      const config = { headers: { Authorization: `Bearer ${user.token}`, 'Content-Type': 'application/json' } };
+      await axios.post('http://localhost:5000/api/visitors', { visitorName, visitorCNIC, expectedDate }, config);
+      setVisitorName('');
+      setVisitorCNIC('');
+      setExpectedDate('');
+      setIsVisitorModalOpen(false);
+      fetchVisitors(); // refresh list
+      alert('Visitor Registered Successfully!');
+    } catch (error) {
+      alert(error.response?.data?.message || 'Error registering visitor');
+    }
+  };
+
   // Stats calculation
   const activeComplaintsCount = complaints.filter(c => c.status !== 'Resolved').length;
-  // Using 0 for visitors until Day 3 features are implemented
-  const approvedVisitorsCount = 0; 
+  // Count approved visitors
+  const approvedVisitorsCount = visitors.filter(v => v.status === 'Approved').length; 
 
   // Helpers
   const getStatusBadge = (status) => {
@@ -176,23 +207,39 @@ const Dashboard = () => {
                   </>
                 )}
 
-                {/* Visitors Tab Content (Mock for now) */}
+                {/* Visitors Tab Content */}
                 {activeTab === 'visitors' && (
                   <>
                     {visitors.length === 0 ? (
-                      <p>No visitor requests found. (Visitor Backend unlocking on Day 3!)</p>
+                      <p>No visitor requests found.</p>
                     ) : (
                       <table className="data-table">
                         <thead>
                           <tr>
                             <th>Visitor Name</th>
-                            <th>Date / Time</th>
+                            <th>Expected Date / Time</th>
+                            <th>CNIC</th>
                             <th>Status</th>
-                            <th>Action</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {/* Will populate on Day 3 */}
+                          {visitors.map(vis => (
+                            <tr key={vis._id}>
+                              <td><strong>{vis.visitorName}</strong></td>
+                              <td>{new Date(vis.expectedDate).toLocaleString()}</td>
+                              <td>{vis.visitorCNIC}</td>
+                              <td>
+                                {vis.status === 'Pending' && <span className="badge badge-open">Pending</span>}
+                                {vis.status === 'Approved' && <span className="badge badge-resolved">Approved</span>}
+                                {vis.status === 'Rejected' && (
+                                  <div>
+                                    <span className="badge badge-progress" style={{backgroundColor: '#ef4444', color: 'white'}}>Rejected</span>
+                                    <br/><small style={{color: '#ef4444'}}>{vis.rejectReason}</small>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     )}
@@ -332,10 +379,42 @@ const Dashboard = () => {
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>Register a Visitor</h3>
-            <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>The visitor registration system is currently disabled. This module will be activated on Day 3.</p>
-            <div className="modal-actions">
-              <button type="button" className="btn-cancel" onClick={() => setIsVisitorModalOpen(false)}>Close</button>
-            </div>
+            <form onSubmit={submitVisitor}>
+              <label>Visitor Name</label>
+              <input 
+                type="text"
+                className="modal-select"
+                style={{ width: '100%', padding: '10px', marginBottom: '15px' }}
+                value={visitorName}
+                onChange={(e) => setVisitorName(e.target.value)}
+                required
+              />
+
+              <label>Visitor CNIC</label>
+              <input 
+                type="text"
+                className="modal-select"
+                style={{ width: '100%', padding: '10px', marginBottom: '15px' }}
+                value={visitorCNIC}
+                onChange={(e) => setVisitorCNIC(e.target.value)}
+                required
+              />
+
+              <label>Expected Date & Time</label>
+              <input 
+                type="datetime-local"
+                className="modal-select"
+                style={{ width: '100%', padding: '10px', marginBottom: '15px' }}
+                value={expectedDate}
+                onChange={(e) => setExpectedDate(e.target.value)}
+                required
+              />
+
+              <div className="modal-actions">
+                <button type="button" className="btn-cancel" onClick={() => setIsVisitorModalOpen(false)}>Cancel</button>
+                <button type="submit" className="btn-submit">Submit Request</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

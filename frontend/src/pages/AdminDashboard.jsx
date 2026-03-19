@@ -13,7 +13,7 @@ const AdminDashboard = () => {
     const [complaints, setComplaints] = useState([]);
     const [staff, setStaff] = useState([]);
     const [users, setUsers] = useState([]);
-    const [visitors, setVisitors] = useState([]); // Mock until day 3
+    const [visitors, setVisitors] = useState([]);
     const [rejectReason, setRejectReason] = useState('');
     const [rejectModalOpen, setRejectModalOpen] = useState(null);
 
@@ -22,8 +22,19 @@ const AdminDashboard = () => {
             fetchComplaints();
             fetchStaff();
             fetchUsersList();
+            fetchVisitors();
         }
     }, [user]);
+
+    const fetchVisitors = async () => {
+        try {
+            const config = { headers: { Authorization: `Bearer ${user.token}` } };
+            const { data } = await axios.get('http://localhost:5000/api/visitors', config);
+            setVisitors(data);
+        } catch (error) {
+            console.error('Error fetching visitors', error);
+        }
+    };
 
     const fetchComplaints = async () => {
         try {
@@ -84,14 +95,35 @@ const AdminDashboard = () => {
         }
     };
 
-    const handleRejectVisitor = () => {
+    const handleApproveVisitor = async (visitorId) => {
+        try {
+            const config = { headers: { Authorization: `Bearer ${user.token}` } };
+            await axios.put(`http://localhost:5000/api/visitors/${visitorId}/status`, { status: 'Approved' }, config);
+            fetchVisitors();
+            alert('Visitor Approved');
+        } catch (err) {
+            alert('Error approving visitor');
+        }
+    };
+
+    const handleRejectVisitor = async () => {
         if (!rejectReason.trim()) {
             alert("Security Policy: Rejection reason must be provided.");
             return;
         }
-        alert("Visitor rejected for reason: " + rejectReason);
-        setRejectModalOpen(null);
-        setRejectReason('');
+        try {
+            const config = { headers: { Authorization: `Bearer ${user.token}` } };
+            await axios.put(`http://localhost:5000/api/visitors/${rejectModalOpen}/status`, { 
+                status: 'Rejected', 
+                rejectReason 
+            }, config);
+            fetchVisitors();
+            setRejectModalOpen(null);
+            setRejectReason('');
+            alert('Visitor Rejected');
+        } catch (err) {
+            alert('Error rejecting visitor');
+        }
     };
 
     return (
@@ -226,27 +258,35 @@ const AdminDashboard = () => {
                         <div className="policy-notice">
                             <strong>🔒 Policy Check:</strong> Visitor requests are strictly not allowed after 10:00 PM. No overnight stays.
                         </div>
-                        <p className="no-data">Visitor system unlocking fully in upcoming phases.</p>
                         
-                        {/* Mock structure for UI */}
-                        <table className="admin-table">
-                            <thead>
-                                <tr><th>Visitor Name</th><th>Resident</th><th>Expected Time</th><th>Action</th></tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Ali Khan</td>
-                                    <td>Hasan (B-102)</td>
-                                    <td>2:00 PM Today</td>
-                                    <td>
-                                        <div className="action-buttons">
-                                            <button className="btn-approve" onClick={() => alert('Approved')}>Approve</button>
-                                            <button className="btn-reject" onClick={() => setRejectModalOpen(1)}>Reject</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        {visitors.length === 0 ? (
+                           <p className="no-data">No visitor requests at this time.</p>
+                        ) : (
+                            <table className="admin-table">
+                                <thead>
+                                    <tr><th>Visitor Name</th><th>Resident</th><th>Expected Time</th><th>Status</th><th>Action</th></tr>
+                                </thead>
+                                <tbody>
+                                    {visitors.map(vis => (
+                                        <tr key={vis._id}>
+                                            <td><strong>{vis.visitorName}</strong><br/><small>CNIC: {vis.visitorCNIC}</small></td>
+                                            <td>{vis.resident?.name} (Room: {vis.resident?.roomNumber})</td>
+                                            <td>{new Date(vis.expectedDate).toLocaleString()}</td>
+                                            <td>{vis.status}</td>
+                                            <td>
+                                                {vis.status === 'Pending' && (
+                                                    <div className="action-buttons">
+                                                        <button className="btn-approve" onClick={() => handleApproveVisitor(vis._id)}>Approve</button>
+                                                        <button className="btn-reject" onClick={() => setRejectModalOpen(vis._id)}>Reject</button>
+                                                    </div>
+                                                )}
+                                                {vis.status === 'Rejected' && <small style={{color: 'red'}}>Reason: {vis.rejectReason}</small>}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
                     </div>
                 )}
 

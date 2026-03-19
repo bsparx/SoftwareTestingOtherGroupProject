@@ -4,6 +4,7 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const complaintRoutes = require('./routes/complaintRoutes');
+const visitorRoutes = require('./routes/visitorRoutes');
 
 dotenv.config();
 
@@ -19,6 +20,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/complaints', complaintRoutes);
+app.use('/api/visitors', visitorRoutes);
 
 // Basic route for testing
 app.get('/', (req, res) => {
