@@ -1,5 +1,6 @@
 const Complaint = require('../models/Complaint');
 const User = require('../models/User');
+const AuditLog = require('../models/AuditLog');
 
 // @desc    Create new complaint
 // @route   POST /api/complaints
@@ -67,6 +68,14 @@ const assignComplaint = async (req, res) => {
     // Moving status to "In Progress" when assigned can be a good idea, or let staff do it. Let's keep it Open.
     const updatedComplaint = await complaint.save();
 
+    const staffMember = await User.findById(staffId);
+    await AuditLog.create({
+       action: "Complaint Assigned",
+       performedBy: req.user._id,
+       role: req.user.role,
+       details: `Complaint ${complaint.complaintId} assigned to staff ${staffMember ? staffMember.name : staffId}`
+    });
+
     res.json(updatedComplaint);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -106,6 +115,13 @@ const updateComplaintStatus = async (req, res) => {
       complaint.resolutionRemarks = resolutionRemarks;
     }
     const updatedComplaint = await complaint.save();
+
+    await AuditLog.create({
+       action: `Complaint ${status}`,
+       performedBy: req.user._id,
+       role: req.user.role,
+       details: `Complaint ${complaint.complaintId} status updated to ${status} by ${req.user.name}`
+    });
 
     res.json(updatedComplaint);
   } catch (error) {

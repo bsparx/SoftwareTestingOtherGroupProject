@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import { AuthContext } from '../context/AuthContext';
 import './Dashboard.css';
 
@@ -24,7 +25,7 @@ const Dashboard = () => {
 
   // Form Fields (Visitors)
   const [visitorName, setVisitorName] = useState('');
-  const [visitorCNIC, setVisitorCNIC] = useState('');
+  const [studentId, setStudentId] = useState('');
   const [expectedDate, setExpectedDate] = useState('');
 
   // Fetch data on load
@@ -73,9 +74,9 @@ const Dashboard = () => {
       setDescription('');
       setIsComplaintModalOpen(false);
       fetchComplaints(); // refresh list
-      alert('Complaint Submitted Successfully!');
+      toast.success('Complaint Submitted Successfully!');
     } catch (error) {
-      alert('Error submitting complaint');
+      toast.error('Error submitting complaint');
     }
   };
 
@@ -83,15 +84,15 @@ const Dashboard = () => {
     e.preventDefault();
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}`, 'Content-Type': 'application/json' } };
-      await axios.post('http://localhost:5000/api/visitors', { visitorName, visitorCNIC, expectedDate }, config);
+      await axios.post('http://localhost:5000/api/visitors', { visitorName, studentId, expectedDate }, config);
       setVisitorName('');
-      setVisitorCNIC('');
+      setStudentId('');
       setExpectedDate('');
       setIsVisitorModalOpen(false);
       fetchVisitors(); // refresh list
-      alert('Visitor Registered Successfully!');
+      toast.success('Visitor Registered Successfully!');
     } catch (error) {
-      alert(error.response?.data?.message || 'Error registering visitor');
+      toast.error(error.response?.data?.message || 'Error registering visitor');
     }
   };
 
@@ -218,7 +219,7 @@ const Dashboard = () => {
                           <tr>
                             <th>Visitor Name</th>
                             <th>Expected Date / Time</th>
-                            <th>CNIC</th>
+                            <th>Student ID</th>
                             <th>Status</th>
                           </tr>
                         </thead>
@@ -227,7 +228,7 @@ const Dashboard = () => {
                             <tr key={vis._id}>
                               <td><strong>{vis.visitorName}</strong></td>
                               <td>{new Date(vis.expectedDate).toLocaleString()}</td>
-                              <td>{vis.visitorCNIC}</td>
+                              <td>{vis.studentId}</td>
                               <td>
                                 {vis.status === 'Pending' && <span className="badge badge-open">Pending</span>}
                                 {vis.status === 'Approved' && <span className="badge badge-resolved">Approved</span>}
@@ -390,13 +391,13 @@ const Dashboard = () => {
                 required
               />
 
-              <label>Visitor CNIC</label>
+              <label>Student ID</label>
               <input 
                 type="text"
                 className="modal-select"
                 style={{ width: '100%', padding: '10px', marginBottom: '15px' }}
-                value={visitorCNIC}
-                onChange={(e) => setVisitorCNIC(e.target.value)}
+                value={studentId}
+                onChange={(e) => setStudentId(e.target.value)}
                 required
               />
 

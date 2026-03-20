@@ -10,7 +10,7 @@ const visitorSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  visitorCNIC: {
+  studentId: {
     type: String, /* Required for official university logs */
     required: true
   },

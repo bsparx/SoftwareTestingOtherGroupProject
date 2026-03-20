@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 export const AuthContext = createContext();
 
@@ -22,10 +23,11 @@ export const AuthProvider = ({ children }) => {
       const { data } = await axios.post('http://localhost:5000/api/auth/login', { email, password }, config);
       setUser(data);
       localStorage.setItem('userInfo', JSON.stringify(data));
+      toast.success('Login successful!');
       navigate('/');
     } catch (error) {
       console.error(error.response?.data?.message || 'Login failed');
-      alert(error.response?.data?.message || 'Login failed');
+      toast.error(error.response?.data?.message || 'Login failed');
     }
   };
 
@@ -35,16 +37,18 @@ export const AuthProvider = ({ children }) => {
       const { data } = await axios.post('http://localhost:5000/api/auth/register', { name, email, password, role, roomNumber }, config);
       setUser(data);
       localStorage.setItem('userInfo', JSON.stringify(data));
+      toast.success('Registration successful!');
       navigate('/');
     } catch (error) {
       console.error(error.response?.data?.message || 'Registration failed');
-      alert(error.response?.data?.message || 'Registration failed');
+      toast.error(error.response?.data?.message || 'Registration failed');
     }
   };
 
   const logout = () => {
     localStorage.removeItem('userInfo');
     setUser(null);
+    toast.info('Logged out');
     navigate('/login');
   };
 

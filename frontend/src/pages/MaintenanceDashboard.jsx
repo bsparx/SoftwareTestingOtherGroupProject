@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import { AuthContext } from '../context/AuthContext';
 import './Dashboard.css'; // Reusing base structural layout
 import './MaintenanceDashboard.css'; // specific styles for maintenance
@@ -80,12 +81,12 @@ const MaintenanceDashboard = () => {
 
     const handleUpdateStatus = async () => {
         if (selectedTask.status === 'Open' && statusToUpdate === 'Resolved') {
-            alert('Testing Constraint: Cannot jump from Open directly to Resolved. Please move to In Progress first.');
+            toast.error('Testing Constraint: Cannot jump from Open directly to Resolved. Please move to In Progress first.');
             return;
         }
 
         if (statusToUpdate === 'Resolved' && !resolutionRemarks.trim()) {
-            alert('Testing Constraint: You must provide Resolution Remarks before marking this task as Resolved.');
+            toast.error('Testing Constraint: You must provide Resolution Remarks before marking this task as Resolved.');
             return;
         }
 
@@ -98,9 +99,9 @@ const MaintenanceDashboard = () => {
             
             setSelectedTask(null);
             fetchTasks();
-            alert('Task Updated!');
+            toast.success('Task Updated!');
         } catch (error) {
-            alert(error.response?.data?.message || 'Error updating status');
+            toast.error(error.response?.data?.message || 'Error updating status');
         }
     };
 

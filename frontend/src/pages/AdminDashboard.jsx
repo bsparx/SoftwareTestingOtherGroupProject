@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import { AuthContext } from '../context/AuthContext';
 import './Dashboard.css'; // Reusing base CSS
 import './AdminDashboard.css';
@@ -13,6 +14,7 @@ const AdminDashboard = () => {
     const [complaints, setComplaints] = useState([]);
     const [staff, setStaff] = useState([]);
     const [users, setUsers] = useState([]);
+    const [auditLogs, setAuditLogs] = useState([]);
     const [visitors, setVisitors] = useState([]);
     const [rejectReason, setRejectReason] = useState('');
     const [rejectModalOpen, setRejectModalOpen] = useState(null);
@@ -23,8 +25,19 @@ const AdminDashboard = () => {
             fetchStaff();
             fetchUsersList();
             fetchVisitors();
+            fetchAuditLogs();
         }
     }, [user]);
+
+    const fetchAuditLogs = async () => {
+        try {
+            const config = { headers: { Authorization: `Bearer ${user.token}` } };
+            const { data } = await axios.get('http://localhost:5000/api/users/audit-logs', config);
+            setAuditLogs(data);
+        } catch (error) {
+            console.error('Error fetching audit logs', error);
+        }
+    };
 
     const fetchVisitors = async () => {
         try {
@@ -57,9 +70,13 @@ const AdminDashboard = () => {
     };
 
     const fetchUsersList = async () => {
-        // We'll just mock this for now or call a generic endpoint if it exists
-        // Since we don't have an explicit /api/users, let's just populate it with staff and maybe mock for testing
-        setUsers([{ id: 1, name: 'Hasan', role: 'Resident', room: 'B-102' }]);
+        try {
+            const config = { headers: { Authorization: `Bearer ${user.token}` } };
+            const { data } = await axios.get('http://localhost:5000/api/users', config);
+            setUsers(data);
+        } catch (error) {
+            console.error('Error fetching users', error);
+        }
     };
 
     // Protect Route
@@ -90,8 +107,9 @@ const AdminDashboard = () => {
             const config = { headers: { Authorization: `Bearer ${user.token}` } };
             await axios.put(`http://localhost:5000/api/complaints/${complaintId}/assign`, { staffId }, config);
             fetchComplaints();
+            toast.success('Staff Assigned successfully');
         } catch (err) {
-            alert('Error assigning');
+            toast.error('Error assigning');
         }
     };
 
@@ -100,15 +118,15 @@ const AdminDashboard = () => {
             const config = { headers: { Authorization: `Bearer ${user.token}` } };
             await axios.put(`http://localhost:5000/api/visitors/${visitorId}/status`, { status: 'Approved' }, config);
             fetchVisitors();
-            alert('Visitor Approved');
+            toast.success('Visitor Approved');
         } catch (err) {
-            alert('Error approving visitor');
+            toast.error('Error approving visitor');
         }
     };
 
     const handleRejectVisitor = async () => {
         if (!rejectReason.trim()) {
-            alert("Security Policy: Rejection reason must be provided.");
+            toast.error("Security Policy: Rejection reason must be provided.");
             return;
         }
         try {
@@ -120,9 +138,9 @@ const AdminDashboard = () => {
             fetchVisitors();
             setRejectModalOpen(null);
             setRejectReason('');
-            alert('Visitor Rejected');
+            toast.info('Visitor Rejected');
         } catch (err) {
-            alert('Error rejecting visitor');
+            toast.error('Error rejecting visitor');
         }
     };
 
@@ -269,7 +287,7 @@ const AdminDashboard = () => {
                                 <tbody>
                                     {visitors.map(vis => (
                                         <tr key={vis._id}>
-                                            <td><strong>{vis.visitorName}</strong><br/><small>CNIC: {vis.visitorCNIC}</small></td>
+                                            <td><strong>{vis.visitorName}</strong><br/><small>Student ID: {vis.studentId}</small></td>
                                             <td>{vis.resident?.name} (Room: {vis.resident?.roomNumber})</td>
                                             <td>{new Date(vis.expectedDate).toLocaleString()}</td>
                                             <td>{vis.status}</td>
@@ -293,14 +311,40 @@ const AdminDashboard = () => {
                 {activeTab === 'users' && (
                     <div className="tab-pane">
                         <h3 className="section-title">User Management & Audit Trail</h3>
-                        <p className="no-data">Mocked Audit Log & Users</p>
+                        
+                        <div className="table-responsive" style={{marginBottom: '20px'}}>
+                            <h4>System Users</h4>
+                            <table className="admin-table">
+                                <thead>
+                                    <tr><th>Name</th><th>Email</th><th>Role</th><th>Room/Info</th></tr>
+                                </thead>
+                                <tbody>
+                                    {users.map(u => (
+                                        <tr key={u._id}>
+                                            <td><strong>{u.name}</strong></td>
+                                            <td>{u.email}</td>
+                                            <td><span className={`status-badge ${u.role.toLowerCase()}`}>{u.role}</span></td>
+                                            <td>{u.roomNumber ? `Rm: ${u.roomNumber}` : 'N/A'}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
                         <div className="audit-trail-box">
                             <h4>Immutable Audit Log</h4>
-                            <ul>
-                                <li><strong>[10:00 AM]</strong> System: SLA Warning triggered for ticket #CMP-123</li>
-                                <li><strong>[09:45 AM]</strong> Admin A assigned ticket #CMP-122 to Staff B</li>
-                                <li><strong>[09:00 AM]</strong> Admin A approved visitor request #V-01</li>
-                            </ul>
+                            {auditLogs.length === 0 ? (
+                                <p>No audit logs available.</p>
+                            ) : (
+                                <ul>
+                                    {auditLogs.map(log => (
+                                        <li key={log._id}>
+                                            <strong>[{new Date(log.createdAt).toLocaleString()}]</strong> 
+                                            <span style={{color: '#8C2A35', fontWeight: 'bold'}}> {log.action}:</span> {log.details}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
                         </div>
                     </div>
                 )}

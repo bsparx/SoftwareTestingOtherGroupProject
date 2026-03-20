@@ -1,11 +1,12 @@
 const Visitor = require('../models/Visitor');
+const AuditLog = require('../models/AuditLog');
 
 // @desc    Register a new visitor
 // @route   POST /api/visitors
 // @access  Private (Resident)
 const createVisitor = async (req, res) => {
   try {
-    const { visitorName, visitorCNIC, expectedDate } = req.body;
+    const { visitorName, studentId, expectedDate } = req.body;
     
     // Convert current time and expected date to check curfew
     const requestedDate = new Date(expectedDate);
@@ -19,7 +20,7 @@ const createVisitor = async (req, res) => {
     const visitor = new Visitor({
       resident: req.user._id,
       visitorName,
-      visitorCNIC,
+      studentId,
       expectedDate
     });
 
@@ -73,6 +74,14 @@ const updateVisitorStatus = async (req, res) => {
     }
 
     const updatedVisitor = await visitor.save();
+
+    await AuditLog.create({
+       action: `Visitor ${status}`,
+       performedBy: req.user._id,
+       role: req.user.role,
+       details: `Visitor ${visitor.visitorName} request was ${status.toLowerCase()} by ${req.user.name}`
+    });
+
     res.json(updatedVisitor);
   } catch (error) {
     res.status(500).json({ message: error.message });
