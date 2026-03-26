@@ -105,8 +105,8 @@ const updateComplaintStatus = async (req, res) => {
       if (complaint.status === 'Open' && status === 'Resolved') {
         return res.status(400).json({ message: 'Cannot jump directly from Open to Resolved. Must go through In Progress.' });
       }
-      if (status === 'Resolved' && (!resolutionRemarks || resolutionRemarks.trim() === '')) {
-         return res.status(400).json({ message: 'Resolution remarks are required to mark a ticket as Resolved.' });
+      if ((status === 'Resolved' || status === 'Escalated' || status === 'On Hold') && (!resolutionRemarks || resolutionRemarks.trim() === '')) {
+         return res.status(400).json({ message: `Remarks are required to mark a ticket as ${status}. Please explain.` });
       }
     }
 

@@ -287,7 +287,10 @@ const AdminDashboard = () => {
                                 <tbody>
                                     {visitors.map(vis => (
                                         <tr key={vis._id}>
-                                            <td><strong>{vis.visitorName}</strong><br/><small>Student ID: {vis.studentId}</small></td>
+                                            <td>
+                                              <strong>{vis.visitorName}</strong><br/>
+                                              <small>{vis.visitorType || 'Student'} | {vis.visitorType === 'Outsider' ? `CNIC: ${vis.cnic}` : `StudentID: ${vis.studentId}`}</small>
+                                            </td>
                                             <td>{vis.resident?.name} (Room: {vis.resident?.roomNumber})</td>
                                             <td>{new Date(vis.expectedDate).toLocaleString()}</td>
                                             <td>{vis.status}</td>

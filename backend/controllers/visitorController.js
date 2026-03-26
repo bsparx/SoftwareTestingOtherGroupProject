@@ -6,8 +6,20 @@ const AuditLog = require('../models/AuditLog');
 // @access  Private (Resident)
 const createVisitor = async (req, res) => {
   try {
-    const { visitorName, studentId, expectedDate } = req.body;
+    const { visitorName, visitorType, studentId, cnic, expectedDate } = req.body;
     
+    if (!visitorType) {
+        return res.status(400).json({ message: 'Visitor Type (Student or Outsider) is required.' });
+    }
+
+    if (visitorType === 'Student' && !studentId) {
+        return res.status(400).json({ message: 'Student ID is required for a Student visitor.' });
+    }
+
+    if (visitorType === 'Outsider' && !cnic) {
+        return res.status(400).json({ message: 'CNIC is required for an Outsider visitor.' });
+    }
+
     // Convert current time and expected date to check curfew
     const requestedDate = new Date(expectedDate);
     const hour = requestedDate.getHours();
@@ -20,7 +32,9 @@ const createVisitor = async (req, res) => {
     const visitor = new Visitor({
       resident: req.user._id,
       visitorName,
-      studentId,
+      visitorType,
+      studentId: visitorType === 'Student' ? studentId : undefined,
+      cnic: visitorType === 'Outsider' ? cnic : undefined,
       expectedDate
     });
 

@@ -25,7 +25,9 @@ const Dashboard = () => {
 
   // Form Fields (Visitors)
   const [visitorName, setVisitorName] = useState('');
+  const [visitorType, setVisitorType] = useState('Student');
   const [studentId, setStudentId] = useState('');
+  const [cnic, setCnic] = useState('');
   const [expectedDate, setExpectedDate] = useState('');
 
   // Fetch data on load
@@ -82,11 +84,32 @@ const Dashboard = () => {
 
   const submitVisitor = async (e) => {
     e.preventDefault();
+    
+    if (visitorType === 'Student' && !studentId) {
+      toast.error('Student ID is required for a student visitor');
+      return;
+    }
+    if (visitorType === 'Outsider' && !cnic) {
+      toast.error('CNIC is required for an outsider visitor');
+      return;
+    }
+
     try {
+      const payload = {
+        visitorName,
+        visitorType,
+        expectedDate,
+        studentId: visitorType === 'Student' ? studentId : undefined,
+        cnic: visitorType === 'Outsider' ? cnic : undefined
+      };
+
       const config = { headers: { Authorization: `Bearer ${user.token}`, 'Content-Type': 'application/json' } };
-      await axios.post('http://localhost:5000/api/visitors', { visitorName, studentId, expectedDate }, config);
+      await axios.post('http://localhost:5000/api/visitors', payload, config);
+      
       setVisitorName('');
+      setVisitorType('Student');
       setStudentId('');
+      setCnic('');
       setExpectedDate('');
       setIsVisitorModalOpen(false);
       fetchVisitors(); // refresh list
@@ -218,8 +241,9 @@ const Dashboard = () => {
                         <thead>
                           <tr>
                             <th>Visitor Name</th>
+                            <th>Type</th>
+                            <th>Identifier</th>
                             <th>Expected Date / Time</th>
-                            <th>Student ID</th>
                             <th>Status</th>
                           </tr>
                         </thead>
@@ -227,8 +251,9 @@ const Dashboard = () => {
                           {visitors.map(vis => (
                             <tr key={vis._id}>
                               <td><strong>{vis.visitorName}</strong></td>
+                              <td>{vis.visitorType || 'Student'}</td>
+                              <td>{vis.visitorType === 'Outsider' ? `CNIC: ${vis.cnic}` : `ID: ${vis.studentId}`}</td>
                               <td>{new Date(vis.expectedDate).toLocaleString()}</td>
-                              <td>{vis.studentId}</td>
                               <td>
                                 {vis.status === 'Pending' && <span className="badge badge-open">Pending</span>}
                                 {vis.status === 'Approved' && <span className="badge badge-resolved">Approved</span>}
@@ -391,15 +416,42 @@ const Dashboard = () => {
                 required
               />
 
-              <label>Student ID</label>
-              <input 
-                type="text"
+              <label>Visitor Type</label>
+              <select 
                 className="modal-select"
                 style={{ width: '100%', padding: '10px', marginBottom: '15px' }}
-                value={studentId}
-                onChange={(e) => setStudentId(e.target.value)}
-                required
-              />
+                value={visitorType}
+                onChange={(e) => setVisitorType(e.target.value)}
+              >
+                <option value="Student">Student</option>
+                <option value="Outsider">Outsider</option>
+              </select>
+
+              {visitorType === 'Student' ? (
+                <>
+                  <label>Student ID</label>
+                  <input 
+                    type="text"
+                    className="modal-select"
+                    style={{ width: '100%', padding: '10px', marginBottom: '15px' }}
+                    value={studentId}
+                    onChange={(e) => setStudentId(e.target.value)}
+                    required
+                  />
+                </>
+              ) : (
+                <>
+                  <label>CNIC</label>
+                  <input 
+                    type="text"
+                    className="modal-select"
+                    style={{ width: '100%', padding: '10px', marginBottom: '15px' }}
+                    value={cnic}
+                    onChange={(e) => setCnic(e.target.value)}
+                    required
+                  />
+                </>
+              )}
 
               <label>Expected Date & Time</label>
               <input 

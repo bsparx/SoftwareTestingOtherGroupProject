@@ -10,9 +10,17 @@ const visitorSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  visitorType: {
+    type: String,
+    enum: ['Student', 'Outsider'],
+    required: true,
+    default: 'Student'
+  },
   studentId: {
-    type: String, /* Required for official university logs */
-    required: true
+    type: String,
+  },
+  cnic: {
+    type: String,
   },
   expectedDate: {
     type: Date,
