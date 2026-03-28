@@ -198,7 +198,9 @@ const MaintenanceDashboard = () => {
                                 >
                                     <div className="mnt-card-top">
                                         <span className="mnt-id">{task.complaintId}</span>
-                                        {isDelayed && <span className="delayed-badge">URGENT</span>}
+                                        {task.urgency === 'High' && <span className="delayed-badge">Urgent</span>}
+                                        {task.urgency === 'Medium' && <span className="escalated-badge">Sub-Urgent</span>}
+                                        {task.urgency === 'Low' && <span className="resolved-badge">Low</span>}
                                         {task.status === 'Resolved' && <span className="resolved-badge">Done</span>}
                                         {task.status === 'Escalated' && <span className="escalated-badge">Escalated</span>}
                                         {task.status === 'On Hold' && <span className="hold-badge">On Hold</span>}

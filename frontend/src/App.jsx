@@ -5,6 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import VerifyEmail from './pages/VerifyEmail';
 import AdminDashboard from './pages/AdminDashboard';
 import MaintenanceDashboard from './pages/MaintenanceDashboard';
 import Home from './pages/Home';
@@ -17,6 +18,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/verify-email/:token" element={<VerifyEmail />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/maintenance" element={<MaintenanceDashboard />} />
           <Route path="/" element={<Home />} />

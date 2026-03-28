@@ -6,6 +6,7 @@ const {
   getComplaints,
   assignComplaint,
   updateComplaintStatus,
+  updateComplaintUrgency,
   getMaintenanceStaff
 } = require('../controllers/complaintController');
 
@@ -25,5 +26,8 @@ router.put('/:id/assign', authorizeRoles('Admin'), assignComplaint);
 
 // Route: /api/complaints/:id/status
 router.put('/:id/status', authorizeRoles('Admin', 'Maintenance'), updateComplaintStatus);
+
+// Route: /api/complaints/:id/urgency
+router.put('/:id/urgency', authorizeRoles('Admin'), updateComplaintUrgency);
 
 module.exports = router;

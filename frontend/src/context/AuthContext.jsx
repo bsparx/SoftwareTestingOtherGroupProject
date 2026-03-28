@@ -35,10 +35,8 @@ export const AuthProvider = ({ children }) => {
     try {
       const config = { headers: { 'Content-Type': 'application/json' } };
       const { data } = await axios.post('http://localhost:5000/api/auth/register', { name, email, password, role, roomNumber }, config);
-      setUser(data);
-      localStorage.setItem('userInfo', JSON.stringify(data));
-      toast.success('Registration successful!');
-      navigate('/');
+      toast.success(data.message || 'Registration successful! Please verify your email.');
+      navigate('/login');
     } catch (error) {
       console.error(error.response?.data?.message || 'Registration failed');
       toast.error(error.response?.data?.message || 'Registration failed');

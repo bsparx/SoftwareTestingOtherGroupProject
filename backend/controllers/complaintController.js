@@ -7,7 +7,7 @@ const AuditLog = require('../models/AuditLog');
 // @access  Private (Resident only)
 const createComplaint = async (req, res) => {
   try {
-    const { category, description } = req.body;
+    const { category, description, urgency } = req.body;
     
     // Generate unique complaint ID (e.g., CMP-DateNow)
     const complaintId = `CMP-${Date.now()}`;
@@ -17,6 +17,7 @@ const createComplaint = async (req, res) => {
       resident: req.user._id,
       category,
       description,
+      urgency: urgency || 'Medium',
     });
 
     res.status(201).json(complaint);
@@ -141,10 +142,45 @@ const getMaintenanceStaff = async (req, res) => {
   }
 };
 
+// @desc    Update complaint urgency
+// @route   PUT /api/complaints/:id/urgency
+// @access  Private (Admin only)
+const updateComplaintUrgency = async (req, res) => {
+  try {
+    const { urgency } = req.body;
+
+    if (!['High', 'Medium', 'Low'].includes(urgency)) {
+      return res.status(400).json({ message: 'Invalid urgency level' });
+    }
+
+    const complaint = await Complaint.findById(req.params.id);
+
+    if (!complaint) {
+      return res.status(404).json({ message: 'Complaint not found' });
+    }
+
+    const oldUrgency = complaint.urgency;
+    complaint.urgency = urgency;
+    const updatedComplaint = await complaint.save();
+
+    await AuditLog.create({
+       action: `Urgency Changed`,
+       performedBy: req.user._id,
+       role: req.user.role,
+       details: `Complaint ${complaint.complaintId} urgency changed from ${oldUrgency} to ${urgency} by Admin ${req.user.name}`
+    });
+
+    res.json(updatedComplaint);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createComplaint,
   getComplaints,
   assignComplaint,
   updateComplaintStatus,
+  updateComplaintUrgency,
   getMaintenanceStaff
 };

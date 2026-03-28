@@ -22,6 +22,7 @@ const Dashboard = () => {
   // Form Fields (Tasks)
   const [category, setCategory] = useState('Plumbing');
   const [description, setDescription] = useState('');
+  const [urgency, setUrgency] = useState('Medium');
 
   // Form Fields (Visitors)
   const [visitorName, setVisitorName] = useState('');
@@ -72,8 +73,9 @@ const Dashboard = () => {
     e.preventDefault();
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}`, 'Content-Type': 'application/json' } };
-      await axios.post('http://localhost:5000/api/complaints', { category, description }, config);
+      await axios.post('http://localhost:5000/api/complaints', { category, description, urgency }, config);
       setDescription('');
+      setUrgency('Medium');
       setIsComplaintModalOpen(false);
       fetchComplaints(); // refresh list
       toast.success('Complaint Submitted Successfully!');
@@ -211,6 +213,7 @@ const Dashboard = () => {
                             <th>Complaint ID</th>
                             <th>Category</th>
                             <th>Description</th>
+                            <th>Urgency</th>
                             <th>Assigned To</th>
                             <th>Status</th>
                           </tr>
@@ -221,6 +224,11 @@ const Dashboard = () => {
                               <td><strong>{comp.complaintId}</strong></td>
                               <td>{comp.category}</td>
                               <td>{comp.description}</td>
+                              <td>
+                                {comp.urgency === 'High' && <span style={{color: '#ef4444', fontWeight: 'bold'}}>High 🚨</span>}
+                                {comp.urgency === 'Medium' && <span style={{color: '#f59e0b', fontWeight: 'bold'}}>Medium</span>}
+                                {comp.urgency === 'Low' && <span style={{color: '#10b981', fontWeight: 'bold'}}>Low</span>}
+                              </td>
                               <td>{comp.assignedTo ? comp.assignedTo.name : 'Unassigned'}</td>
                               <td>{getStatusBadge(comp.status)}</td>
                             </tr>
@@ -296,6 +304,7 @@ const Dashboard = () => {
                     <tr>
                       <th>ID & Date</th>
                       <th>Category & Desc</th>
+                      <th>Urgency</th>
                       <th>Status</th>
                       {user.role === 'Admin' && <th>Resident</th>}
                       <th>Assigned To</th>
@@ -312,6 +321,32 @@ const Dashboard = () => {
                         <td>
                           <strong>{comp.category}</strong><br />
                           {comp.description}
+                        </td>
+                        <td>
+                          {user.role === 'Admin' ? (
+                            <select 
+                              className="modal-select"
+                              value={comp.urgency} 
+                              onChange={async (e) => {
+                                  const config = { headers: { Authorization: `Bearer ${user.token}`, 'Content-Type': 'application/json' } };
+                                  await axios.put(`http://localhost:5000/api/complaints/${comp._id}/urgency`, { urgency: e.target.value }, config);
+                                  fetchComplaints();
+                                  toast.info(`Urgency updated to ${e.target.value}`);
+                              }}
+                              style={{ padding: '2px', fontSize: '0.85rem' }}
+                            >
+                              <option value="Low">Low</option>
+                              <option value="Medium">Medium</option>
+                              <option value="High">High 🚨</option>
+                            </select>
+                          ) : (
+                            <span style={{
+                              color: comp.urgency === 'High' ? '#ef4444' : comp.urgency === 'Medium' ? '#f59e0b' : '#10b981',
+                              fontWeight: 'bold'
+                            }}>
+                              {comp.urgency}
+                            </span>
+                          )}
                         </td>
                         <td>{getStatusBadge(comp.status)}</td>
                         
@@ -392,6 +427,13 @@ const Dashboard = () => {
                 required 
               />
               
+              <label>Urgency Level</label>
+              <select className="modal-select" value={urgency} onChange={(e) => setUrgency(e.target.value)}>
+                <option value="Low">Low - Not affecting daily life</option>
+                <option value="Medium">Medium - Standard issue</option>
+                <option value="High">High 🚨 - Urgent / Safety Hazard</option>
+              </select>
+
               <div className="modal-actions">
                 <button type="button" className="btn-cancel" onClick={() => setIsComplaintModalOpen(false)}>Cancel</button>
                 <button type="submit" className="btn-submit">Submit</button>

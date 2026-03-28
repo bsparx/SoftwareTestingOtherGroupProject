@@ -154,7 +154,6 @@ const AdminDashboard = () => {
                     <li className={activeTab === 'complaints' ? 'active' : ''} onClick={() => setActiveTab('complaints')}>🛠️ Complaints</li>
                     <li className={activeTab === 'visitors' ? 'active' : ''} onClick={() => setActiveTab('visitors')}>📖 Visitors</li>
                     <li className={activeTab === 'users' ? 'active' : ''} onClick={() => setActiveTab('users')}>👥 Users</li>
-                    <li className={activeTab === 'reports' ? 'active' : ''} onClick={() => setActiveTab('reports')}>📈 Reports</li>
                 </ul>
                 <div className="sidebar-footer">
                     <button onClick={logout} className="btn-logout-sidebar">Logout</button>
@@ -228,6 +227,7 @@ const AdminDashboard = () => {
                                         <th>ID & Status</th>
                                         <th>Category & Desc</th>
                                         <th>Resident</th>
+                                        <th>Urgency</th>
                                         <th>SLA Warning</th>
                                         <th>Assignment Queue</th>
                                     </tr>
@@ -246,6 +246,26 @@ const AdminDashboard = () => {
                                                     {comp.description}
                                                 </td>
                                                 <td>{comp.resident?.name} (Rm: {comp.resident?.roomNumber})</td>
+                                                <td>
+                                                    <select 
+                                                        className="assign-select"
+                                                        value={comp.urgency} 
+                                                        onChange={async (e) => {
+                                                            try {
+                                                                const config = { headers: { Authorization: `Bearer ${user.token}`, 'Content-Type': 'application/json' } };
+                                                                await axios.put(`http://localhost:5000/api/complaints/${comp._id}/urgency`, { urgency: e.target.value }, config);
+                                                                fetchComplaints();
+                                                                toast.info(`Urgency updated to ${e.target.value}`);
+                                                            } catch (err) {
+                                                                toast.error('Error updating urgency');
+                                                            }
+                                                        }}
+                                                    >
+                                                        <option value="Low">Low</option>
+                                                        <option value="Medium">Medium</option>
+                                                        <option value="High">High 🚨</option>
+                                                    </select>
+                                                </td>
                                                 <td>
                                                     {breached ? <span className="sla-badge">⚠️ &gt;48hrs</span> : <span className="on-track">On Track</span>}
                                                 </td>
