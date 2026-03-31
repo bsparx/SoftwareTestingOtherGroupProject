@@ -18,7 +18,7 @@ const MaintenanceDashboard = () => {
     useEffect(() => {
         if (user && user.role === 'Maintenance') {
             fetchTasks();
-            const interval = setInterval(fetchTasks, 30000); 
+            const interval = setInterval(fetchTasks, 10000); // 10 seconds for consistency
             return () => clearInterval(interval);
         }
     }, [user]);

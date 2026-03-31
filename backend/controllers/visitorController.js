@@ -50,6 +50,21 @@ const createVisitor = async (req, res) => {
 // @access  Private
 const getVisitors = async (req, res) => {
   try {
+    // Auto-reject visitors whose expectedDate has passed by more than 1 hour and are still Pending
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    await Visitor.updateMany(
+      { 
+        status: 'Pending', 
+        expectedDate: { $lt: oneHourAgo } 
+      },
+      { 
+        $set: { 
+          status: 'Rejected', 
+          rejectReason: 'Auto-rejected: Visitor did not show up within 1 hour of the requested time.' 
+        } 
+      }
+    );
+
     let visitors;
     
     if (req.user.role === 'Resident') {

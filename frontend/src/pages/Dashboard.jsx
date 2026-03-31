@@ -15,6 +15,7 @@ const Dashboard = () => {
   // Resident Form / Modal States
   const [isComplaintModalOpen, setIsComplaintModalOpen] = useState(false);
   const [isVisitorModalOpen, setIsVisitorModalOpen] = useState(false);
+  const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
   
   // Tabs State
   const [activeTab, setActiveTab] = useState('maintenance');
@@ -31,12 +32,28 @@ const Dashboard = () => {
   const [cnic, setCnic] = useState('');
   const [expectedDate, setExpectedDate] = useState('');
 
-  // Fetch data on load
+  // Fetch data on load and poll
   useEffect(() => {
-    fetchComplaints();
-    if (user?.role === 'Resident') {
-      fetchVisitors();
+    let intervalId;
+    
+    if (user) {
+      const loadData = () => {
+        fetchComplaints();
+        if (user?.role === 'Resident') {
+          fetchVisitors();
+        }
+      };
+
+      loadData();
+
+      intervalId = setInterval(() => {
+        loadData();
+      }, 10000);
     }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [user]);
 
   const fetchComplaints = async () => {
@@ -121,6 +138,17 @@ const Dashboard = () => {
     }
   };
 
+  const handleEmergencySubmit = async () => {
+    try {
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      await axios.post('http://localhost:5000/api/emergencies', {}, config);
+      toast.success('Emergency alert sent to admin immediately!');
+      setIsEmergencyModalOpen(false);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Emergency report failed');
+    }
+  };
+
   // Stats calculation
   const activeComplaintsCount = complaints.filter(c => c.status !== 'Resolved').length;
   // Count approved visitors
@@ -154,7 +182,16 @@ const Dashboard = () => {
           <>
             {/* 1. Hero Header */}
             <div className="hero-header">
-              <h2>Welcome, {user.name} | Room {user.roomNumber || 'N/A'}</h2>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h2>Welcome, {user.name} | Room {user.roomNumber || 'N/A'}</h2>
+                  <button 
+                    onClick={() => setIsEmergencyModalOpen(true)}
+                    className="auth-btn" 
+                    style={{ backgroundColor: '#cc0000', width: 'auto', padding: '10px 20px', margin: '0', fontWeight: 'bold' }}
+                  >
+                    🚨 REPORT EMERGENCY
+                  </button>
+                </div>
               <div className="stats-container">
                 <div className="stat-card">
                   <h4>Active Complaints</h4>
@@ -510,6 +547,20 @@ const Dashboard = () => {
                 <button type="submit" className="btn-submit">Submit Request</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Emergency Modal */}
+      {isEmergencyModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ borderTop: '5px solid #cc0000' }}>
+            <h2 style={{ color: '#cc0000' }}>🚨 Confirm Emergency</h2>
+            <p>Are you sure you want to report an emergency? This will immediately alert the admin. Use this ONLY for actual emergencies.</p>
+            <div className="modal-actions" style={{ marginTop: '20px' }}>
+              <button type="button" className="btn-cancel" onClick={() => setIsEmergencyModalOpen(false)}>Cancel</button>
+              <button type="button" className="btn-submit" style={{ backgroundColor: '#cc0000' }} onClick={handleEmergencySubmit}>Confirm Emergency</button>
+            </div>
           </div>
         </div>
       )}

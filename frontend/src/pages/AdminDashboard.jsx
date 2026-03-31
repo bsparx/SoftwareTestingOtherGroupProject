@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -16,18 +16,71 @@ const AdminDashboard = () => {
     const [users, setUsers] = useState([]);
     const [auditLogs, setAuditLogs] = useState([]);
     const [visitors, setVisitors] = useState([]);
+    const [emergencies, setEmergencies] = useState([]);
     const [rejectReason, setRejectReason] = useState('');
     const [rejectModalOpen, setRejectModalOpen] = useState(null);
+    const [resolveEmergencyModalOpen, setResolveEmergencyModalOpen] = useState(null);
+
+    const activeEmergenciesRef = useRef(0);
 
     useEffect(() => {
+        let intervalId;
         if (user && user.role === 'Admin') {
             fetchComplaints();
             fetchStaff();
             fetchUsersList();
             fetchVisitors();
             fetchAuditLogs();
+            fetchEmergencies();
+
+            // Poll for real-time updates every 10 seconds
+            intervalId = setInterval(() => {
+                fetchEmergencies(true);
+                fetchComplaints();
+                fetchVisitors();
+                fetchAuditLogs();
+                // We can skip fetching staff and users every 10 seconds as they rarely change,
+                // but if we want strictly everything, we can uncomment these:
+                // fetchStaff();
+                // fetchUsersList();
+            }, 10000);
         }
+        return () => {
+            if (intervalId) clearInterval(intervalId);
+        };
     }, [user]);
+
+    const fetchEmergencies = async (isPolling = false) => {
+        try {
+            const config = { headers: { Authorization: `Bearer ${user.token}` } };
+            const { data } = await axios.get('http://localhost:5000/api/emergencies', config);
+            setEmergencies(data);
+
+            const activeCount = data.filter(e => e.status === 'Active').length;
+            if (isPolling && activeCount > activeEmergenciesRef.current) {
+                toast.error('🚨 NEW EMERGENCY LOGGED!', {
+                    position: "top-center",
+                    autoClose: false,
+                    theme: "colored"
+                });
+            }
+            activeEmergenciesRef.current = activeCount;
+        } catch (error) {
+            console.error('Error fetching emergencies', error);
+        }
+    };
+
+    const handleResolveEmergency = async () => {
+        try {
+            const config = { headers: { Authorization: `Bearer ${user.token}` } };
+            await axios.put(`http://localhost:5000/api/emergencies/${resolveEmergencyModalOpen}/resolve`, {}, config);
+            fetchEmergencies();
+            toast.success('Emergency marked as resolved');
+            setResolveEmergencyModalOpen(null);
+        } catch (error) {
+            toast.error('Error resolving emergency');
+        }
+    };
 
     const fetchAuditLogs = async () => {
         try {
@@ -151,6 +204,7 @@ const AdminDashboard = () => {
                 <div className="sidebar-logo">Admin View</div>
                 <ul className="sidebar-nav">
                     <li className={activeTab === 'dashboard' ? 'active' : ''} onClick={() => setActiveTab('dashboard')}>📊 Dashboard</li>
+                    <li className={activeTab === 'emergencies' ? 'active' : ''} style={{ color: emergencies.some(e => e.status === 'Active') ? '#ff4d4d' : 'inherit', fontWeight: emergencies.some(e => e.status === 'Active') ? 'bold' : 'normal' }} onClick={() => setActiveTab('emergencies')}>🚨 Emergencies {emergencies.some(e => e.status === 'Active') && `(${emergencies.filter(e => e.status === 'Active').length})`}</li>
                     <li className={activeTab === 'complaints' ? 'active' : ''} onClick={() => setActiveTab('complaints')}>🛠️ Complaints</li>
                     <li className={activeTab === 'visitors' ? 'active' : ''} onClick={() => setActiveTab('visitors')}>📖 Visitors</li>
                     <li className={activeTab === 'users' ? 'active' : ''} onClick={() => setActiveTab('users')}>👥 Users</li>
@@ -213,6 +267,54 @@ const AdminDashboard = () => {
                                     {/* Further implementation for charts */}
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'emergencies' && (
+                    <div className="tab-pane">
+                        <h3 className="section-title" style={{ color: '#cc0000' }}>🚨 Active Emergencies</h3>
+                        <div className="table-responsive">
+                            <table className="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Reported At</th>
+                                        <th>Student Name</th>
+                                        <th>Room Number</th>
+                                        <th>Contact Email</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {emergencies.map(em => (
+                                        <tr key={em._id} style={{ backgroundColor: em.status === 'Active' ? '#ffe6e6' : 'white' }}>
+                                            <td>{new Date(em.createdAt).toLocaleString()}</td>
+                                            <td>{em.resident?.name || 'Unknown'}</td>
+                                            <td><strong>{em.resident?.roomNumber || 'N/A'}</strong></td>
+                                            <td>{em.resident?.email || 'N/A'}</td>
+                                            <td>
+                                                {em.status === 'Active' ? <span style={{ color: 'red', fontWeight: 'bold' }}>ACTIVE</span> : 'Resolved'}
+                                            </td>
+                                            <td>
+                                                {em.status === 'Active' && (
+                                                    <button
+                                                        className="btn-resolve"
+                                                        onClick={() => setResolveEmergencyModalOpen(em._id)}
+                                                    >
+                                                        Mark Resolved
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {emergencies.length === 0 && (
+                                        <tr>
+                                            <td colSpan="6">No emergencies reported. Stay safe!</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 )}
@@ -380,8 +482,8 @@ const AdminDashboard = () => {
                     <div className="modal-content">
                         <h3>Reject Visitor Request</h3>
                         <label>Reason for Rejection *</label>
-                        <textarea 
-                            className="modal-textarea" 
+                        <textarea
+                            className="modal-textarea"
                             rows="3"
                             value={rejectReason}
                             onChange={(e) => setRejectReason(e.target.value)}
@@ -390,6 +492,20 @@ const AdminDashboard = () => {
                         <div className="modal-actions">
                             <button className="btn-cancel" onClick={() => {setRejectModalOpen(null); setRejectReason('');}}>Cancel</button>
                             <button className="btn-submit btn-reject-confirm" onClick={handleRejectVisitor}>Confirm Rejection</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Resolve Emergency Modal */}
+            {resolveEmergencyModalOpen && (
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <h3>Confirm Emergency Resolution</h3>
+                        <p>Are you sure you want to mark this emergency as resolved? Please ensure the situation has been fully handled before proceeding.</p>
+                        <div className="modal-actions" style={{ marginTop: '20px' }}>
+                            <button className="btn-cancel" onClick={() => setResolveEmergencyModalOpen(null)}>Cancel</button>
+                            <button className="btn-submit" style={{ backgroundColor: '#28a745' }} onClick={handleResolveEmergency}>Confirm Resolved</button>
                         </div>
                     </div>
                 </div>

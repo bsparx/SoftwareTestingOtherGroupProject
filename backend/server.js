@@ -6,6 +6,7 @@ const authRoutes = require('./routes/authRoutes');
 const complaintRoutes = require('./routes/complaintRoutes');
 const visitorRoutes = require('./routes/visitorRoutes');
 const userRoutes = require('./routes/userRoutes');
+const emergencyRoutes = require('./routes/emergencyRoutes');
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/visitors', visitorRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/emergencies', emergencyRoutes);
 
 // Basic route for testing
 app.get('/', (req, res) => {
