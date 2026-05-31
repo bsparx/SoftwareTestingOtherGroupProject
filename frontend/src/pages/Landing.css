@@ -1,0 +1,176 @@
+.landing-container {
+  min-height: 100vh;
+  background-color: #8C2A35; /* IBA maroon-like color */
+  color: #ffffff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.landing-navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 40px;
+}
+
+.landing-logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.branding-icon {
+  width: 30px;
+  height: 30px;
+  background-color: #4a151d;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.btn-nav-login {
+  background-color: #ffffff;
+  color: #8C2A35;
+  text-decoration: none;
+  padding: 10px 30px;
+  border-radius: 8px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.btn-nav-login:hover {
+  background-color: #f0f0f0;
+}
+
+.landing-main {
+  display: flex;
+  flex: 1;
+  padding: 40px 10%;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hero-content {
+  flex: 1;
+  padding-right: 40px;
+}
+
+.hero-content h1 {
+  font-size: 4.5rem;
+  line-height: 1.1;
+  margin-bottom: 20px;
+  font-weight: 800;
+}
+
+.hero-content p.subtitle {
+  font-size: 1.2rem;
+  line-height: 1.6;
+  margin-bottom: 40px;
+  color: #e8d0d3;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.btn-primary {
+  background-color: #1a2a3a; /* Dark navy/black */
+  color: white;
+  text-decoration: none;
+  padding: 15px 30px;
+  border-radius: 8px;
+  font-weight: bold;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.register-text {
+  font-size: 0.9rem;
+  color: #e8d0d3;
+}
+
+.register-link {
+  color: #ffffff;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.hero-graphic {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.graphic-outer-circle {
+  width: 450px;
+  height: 450px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.graphic-inner-circle {
+  width: 250px;
+  height: 250px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.checkmark-icon {
+  width: 100px;
+  height: 100px;
+  fill: #8C2A35;
+}
+
+.landing-footer {
+  text-align: center;
+  padding: 20px;
+  font-size: 0.8rem;
+  color: #d1aeb2;
+}
+
+/* Make it responsive */
+@media (max-width: 900px) {
+  .landing-main {
+    flex-direction: column;
+    text-align: center;
+  }
+  .hero-content {
+    padding-right: 0;
+    margin-bottom: 50px;
+  }
+  .hero-content h1 {
+    font-size: 3rem;
+  }
+  .hero-buttons {
+    justify-content: center;
+  }
+  .graphic-outer-circle {
+    width: 300px;
+    height: 300px;
+  }
+  .graphic-inner-circle {
+    width: 150px;
+    height: 150px;
+  }
+}
