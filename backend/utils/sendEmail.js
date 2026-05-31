@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const buildEmailOptions = require('./buildEmailOptions');
 
 const sendEmail = async (options) => {
   // Create a transporter
@@ -12,13 +13,7 @@ const sendEmail = async (options) => {
   });
 
   // Define email options
-  const mailOptions = {
-    from: `${process.env.EMAIL_FROM_NAME} <${process.env.EMAIL_FROM}>`,
-    to: options.email,
-    subject: options.subject,
-    text: options.message,
-    html: options.html,
-  };
+  const mailOptions = buildEmailOptions(options);
 
   // Actually send the email
   await transporter.sendMail(mailOptions);
