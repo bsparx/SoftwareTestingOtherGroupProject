@@ -6,11 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-<<<<<<< HEAD
     "test": "node --test"
-=======
-    "test": "jest --verbose --forceExit --detectOpenHandles"
->>>>>>> 101590e7498b77eedd9abba6228a54320b885df8
   },
   "keywords": [],
   "author": "",
