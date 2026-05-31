@@ -1,0 +1,9 @@
+PW_RESIDENT_EMAIL="qamarchamp1@gmail.com" PW_RESIDENT_PASSWORD="pakistan" npm run test:e2e:demo -- --grep "USE-02"
+
+
+Above is for USE-02
+
+
+PW_ADMIN_EMAIL="q.raza.27140@khi.iba.edu.pk" PW_ADMIN_PASSWORD="pakistan" npm run test:e2e:demo -- --grep "ADMIN-01"
+
+Smoke test for admin dashboard, checks if all paths reachable
