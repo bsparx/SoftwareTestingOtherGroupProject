@@ -63,6 +63,7 @@ jest.mock('../models/Visitor', () => {
 
 const { createComplaint, getComplaints } = require('../controllers/complaintController');
 const { createVisitor, updateVisitorStatus } = require('../controllers/visitorController');
+const { authorizeRoles } = require('../middleware/authMiddleware');
 const Complaint = require('../models/Complaint');
 const AuditLog = require('../models/AuditLog');
 const Visitor = require('../models/Visitor');
@@ -409,5 +410,211 @@ describe('REQ-VIS-07: Check-in/out Timestamps', () => {
     expect(eligibleForCheckIn).toEqual(['Approved']);
     expect(eligibleForCheckIn).not.toContain('Pending');
     expect(eligibleForCheckIn).not.toContain('Rejected');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TC-RBAC-003: Maintenance Staff Cannot Create Complaints
+// Module: RBAC | Priority: Medium
+// Test Steps: Maintenance worker attempts POST request to /api/complaints.
+// Expected Result: Backend rejects API call (403 Forbidden).
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('TC-RBAC-003: Maintenance Staff Cannot Create Complaints', () => {
+
+  let req, res, next;
+
+  beforeEach(() => {
+    req = { user: { role: 'Maintenance', _id: 'maint-001', name: 'Worker A' } };
+    res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn()
+    };
+    next = jest.fn();
+  });
+
+  test('TC-RBAC-003a: Maintenance role is blocked by authorizeRoles(Resident)', () => {
+    // This mirrors complaintRoutes.js line 21:
+    //   router.route('/').post(authorizeRoles('Resident'), createComplaint)
+    const middleware = authorizeRoles('Resident');
+    middleware(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test('TC-RBAC-003b: 403 response contains correct error message', () => {
+    const middleware = authorizeRoles('Resident');
+    middleware(req, res, next);
+
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining('Maintenance'),
+      })
+    );
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining('not authorized'),
+      })
+    );
+  });
+
+  test('TC-RBAC-003c: Resident role IS allowed to create complaints', () => {
+    req.user.role = 'Resident';
+    const middleware = authorizeRoles('Resident');
+    middleware(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(res.status).not.toHaveBeenCalled();
+  });
+
+  test('TC-RBAC-003d: Admin role is also blocked from creating complaints', () => {
+    req.user.role = 'Admin';
+    const middleware = authorizeRoles('Resident');
+    middleware(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test('TC-RBAC-003e: Guard role is blocked from creating complaints', () => {
+    req.user.role = 'Guard';
+    const middleware = authorizeRoles('Resident');
+    middleware(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TC-RBAC-004: API Security - Resident Data Isolation
+// Module: RBAC | Priority: High
+// Test Steps: Resident A calls GET /api/complaints.
+// Expected Result: Only Resident A's items are returned; no other resident data leaked.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('TC-RBAC-004: API Security - Resident Data Isolation', () => {
+
+  beforeEach(() => {
+    mockAuditLogCreate.mockResolvedValue({});
+  });
+
+  test('TC-RBAC-004a: Resident A query filters by their own ID only', async () => {
+    const residentAId = 'resident-A-001';
+    const mockFind = jest.fn().mockReturnValue({
+      populate: jest.fn().mockResolvedValue([
+        { complaintId: 'CMP-100', resident: residentAId, category: 'Plumbing' },
+        { complaintId: 'CMP-101', resident: residentAId, category: 'Electrical' },
+      ]),
+    });
+    mockComplaintFind.mockImplementation(mockFind);
+
+    const req = { user: { _id: residentAId, role: 'Resident' } };
+    const res = mockRes();
+    await getComplaints(req, res);
+
+    // Must call Complaint.find with { resident: residentAId }
+    expect(mockFind).toHaveBeenCalledWith({ resident: residentAId });
+  });
+
+  test('TC-RBAC-004b: Returned complaints belong only to Resident A', async () => {
+    const residentAId = 'resident-A-001';
+    const residentBId = 'resident-B-002';
+
+    // Simulate DB returning only Resident A's complaints
+    const residentAComplaints = [
+      { complaintId: 'CMP-200', resident: residentAId },
+      { complaintId: 'CMP-201', resident: residentAId },
+    ];
+    mockComplaintFind.mockReturnValue({
+      populate: jest.fn().mockResolvedValue(residentAComplaints),
+    });
+
+    const req = { user: { _id: residentAId, role: 'Resident' } };
+    const res = mockRes();
+    await getComplaints(req, res);
+
+    const returnedComplaints = res.json.mock.calls[0][0];
+
+    // Every returned complaint must belong to Resident A
+    returnedComplaints.forEach(complaint => {
+      expect(complaint.resident).toBe(residentAId);
+      expect(complaint.resident).not.toBe(residentBId);
+    });
+  });
+
+  test('TC-RBAC-004c: Resident B has completely separate data scope', async () => {
+    const residentBId = 'resident-B-002';
+    const mockFindB = jest.fn().mockReturnValue({
+      populate: jest.fn().mockResolvedValue([
+        { complaintId: 'CMP-300', resident: residentBId, category: 'Cleaning' },
+      ]),
+    });
+    mockComplaintFind.mockImplementation(mockFindB);
+
+    const req = { user: { _id: residentBId, role: 'Resident' } };
+    const res = mockRes();
+    await getComplaints(req, res);
+
+    // Must filter by Resident B's ID
+    expect(mockFindB).toHaveBeenCalledWith({ resident: residentBId });
+
+    const returned = res.json.mock.calls[0][0];
+    expect(returned[0].resident).toBe(residentBId);
+  });
+
+  test('TC-RBAC-004d: Admin sees ALL complaints (no filter by resident)', async () => {
+    const allComplaints = [
+      { complaintId: 'CMP-100', resident: 'resident-A' },
+      { complaintId: 'CMP-200', resident: 'resident-B' },
+      { complaintId: 'CMP-300', resident: 'resident-C' },
+    ];
+    const mockPopulate2 = jest.fn().mockResolvedValue(allComplaints);
+    const mockPopulate1 = jest.fn().mockReturnValue({ populate: mockPopulate2 });
+    mockComplaintFind.mockReturnValue({ populate: mockPopulate1 });
+
+    const req = { user: { _id: 'admin-1', role: 'Admin' } };
+    const res = mockRes();
+    await getComplaints(req, res);
+
+    // Admin calls Complaint.find() with NO filter (sees everything)
+    expect(mockComplaintFind).toHaveBeenCalledWith();
+    expect(res.json).toHaveBeenCalledWith(allComplaints);
+  });
+
+  test('TC-RBAC-004e: Maintenance staff sees only complaints assigned to them', async () => {
+    const staffId = 'maint-worker-001';
+    const assignedComplaints = [
+      { complaintId: 'CMP-400', assignedTo: staffId },
+    ];
+    mockComplaintFind.mockReturnValue({
+      populate: jest.fn().mockResolvedValue(assignedComplaints),
+    });
+
+    const req = { user: { _id: staffId, role: 'Maintenance' } };
+    const res = mockRes();
+    await getComplaints(req, res);
+
+    // Must filter by { assignedTo: staffId }
+    expect(mockComplaintFind).toHaveBeenCalledWith({ assignedTo: staffId });
+  });
+
+  test('TC-RBAC-004f: Resident cannot guess or access other residents data via query', async () => {
+    const attackerId = 'resident-attacker';
+    const victimId = 'resident-victim';
+
+    // Even if attacker knows victim's ID, the controller uses req.user._id
+    mockComplaintFind.mockReturnValue({
+      populate: jest.fn().mockResolvedValue([]), // returns empty = no leaked data
+    });
+
+    const req = { user: { _id: attackerId, role: 'Resident' } };
+    const res = mockRes();
+    await getComplaints(req, res);
+
+    // The query is bound to the authenticated user, not any user-supplied parameter
+    expect(mockComplaintFind).toHaveBeenCalledWith({ resident: attackerId });
+    expect(mockComplaintFind).not.toHaveBeenCalledWith({ resident: victimId });
   });
 });

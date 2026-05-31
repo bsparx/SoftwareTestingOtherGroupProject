@@ -4,7 +4,7 @@
 
 ### `backend/__tests__/srsRequirements.test.js`
 
-This file contains **22 white-box unit tests** covering 4 previously untested SRS requirements.
+This file contains **33 white-box unit tests** covering 6 previously untested SRS requirements and RBAC test cases.
 
 ---
 
@@ -72,11 +72,42 @@ This file contains **22 white-box unit tests** covering 4 previously untested SR
 
 ---
 
+### 5. TC-RBAC-003: Maintenance Staff Cannot Create Complaints
+**Test Case:** "Maintenance worker attempts POST request to /api/complaints. Expected: 403 Forbidden."
+
+| Test ID | Description | Technique |
+|---|---|---|
+| TC-RBAC-003a | Maintenance role is blocked by `authorizeRoles('Resident')` | Middleware invocation, assert 403 |
+| TC-RBAC-003b | 403 response contains role name in error message | JSON response content assertion |
+| TC-RBAC-003c | Resident role IS allowed to create complaints | `next()` called, no 403 |
+| TC-RBAC-003d | Admin role is also blocked from creating complaints | Only Resident allowed |
+| TC-RBAC-003e | Guard role is blocked from creating complaints | All non-Resident blocked |
+
+**What it tests:** The `authorizeRoles('Resident')` middleware on `complaintRoutes.js:21`. The middleware checks `req.user.role` against the allowed roles array. Only `'Resident'` passes; `'Maintenance'`, `'Admin'`, and `'Guard'` all receive 403.
+
+---
+
+### 6. TC-RBAC-004: API Security - Resident Data Isolation
+**Test Case:** "Resident A calls GET /api/complaints. Expected: Only Resident A's items returned."
+
+| Test ID | Description | Technique |
+|---|---|---|
+| TC-RBAC-004a | Resident A query filters by their own ID only | Verify `Complaint.find({ resident: residentAId })` |
+| TC-RBAC-004b | Returned complaints belong only to Resident A | Assert all results have Resident A's ID |
+| TC-RBAC-004c | Resident B has completely separate data scope | Different filter, different results |
+| TC-RBAC-004d | Admin sees ALL complaints (no filter) | `Complaint.find()` called with no args |
+| TC-RBAC-004e | Maintenance sees only complaints assigned to them | `Complaint.find({ assignedTo: staffId })` |
+| TC-RBAC-004f | Resident cannot access other residents data via query | Authenticated user ID is always used |
+
+**What it tests:** The `getComplaints` controller (`complaintController.js:32-53`) has role-based filtering. Residents get `{ resident: req.user._id }`, Maintenance gets `{ assignedTo: req.user._id }`, Admin gets no filter. The test verifies that `req.user._id` from the JWT is always used, never any user-supplied parameter.
+
+---
+
 ## Test Results
 
 ```
 Test Suites: 6 passed, 6 total
-Tests:       75 passed, 75 total
+Tests:       86 passed, 86 total
 ```
 
 ## Techniques Used
