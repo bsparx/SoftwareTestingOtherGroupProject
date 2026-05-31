@@ -76,3 +76,5 @@ npm run dev
 2. **Verify Email:** Check the email address you registered with, click the verification link, and then log in.
 3. **Change Roles:** To test different dashboards (Admin, Maintenance, Guard), log into your MongoDB database (e.g., using MongoDB Compass) and manually change your user document's `role` field from `Resident` to `Admin`, `Maintenance`, or `Guard`.
 4. **Test the System:** Create a complaint as a Resident, switch to the Admin tab to see it auto-populate, and assign it to a Maintenance worker!
+
+4. **Test the System:** Create a complaint as a Resident, switch to the Admin tab to see it auto-populate, and assign it to a Maintenance worker!# SoftwareTestingOtherGroupProject

@@ -8,11 +8,16 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+<<<<<<< HEAD
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report",
     "test:e2e:demo": "set \"PW_SLOWMO=500\"&& playwright test --headed --project=chromium --workers=1"
+=======
+    "test": "vitest run",
+    "test:watch": "vitest"
+>>>>>>> 101590e7498b77eedd9abba6228a54320b885df8
   },
   "dependencies": {
     "axios": "^1.13.6",
@@ -23,7 +28,13 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+<<<<<<< HEAD
     "@playwright/test": "^1.60.0",
+=======
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+>>>>>>> 101590e7498b77eedd9abba6228a54320b885df8
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.0",
@@ -31,7 +42,9 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
+    "jsdom": "^29.1.1",
     "vite": "^8.0.0",
-    "vite-plugin-react": "^4.0.1"
+    "vite-plugin-react": "^4.0.1",
+    "vitest": "^4.1.7"
   }
 }
