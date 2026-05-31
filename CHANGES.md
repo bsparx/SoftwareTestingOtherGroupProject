@@ -1,10 +1,152 @@
 # CHANGES.md - White Box Testing Additions
 
-## New File Added
+## Files Added
 
-### `backend/__tests__/srsRequirements.test.js`
+| File | Tests | Purpose |
+|---|---|---|
+| `__tests__/smoke.test.js` | 34 | System stability — modules load, exports exist, basic calls work |
+| `__tests__/negative.test.js` | 35 | Invalid inputs, unauthorized actions, edge cases |
+| `__tests__/usability.test.js` | 16 | Core user task flows end-to-end |
+| `__tests__/performance.test.js` | 19 | Response time under normal and concurrent load |
+| `__tests__/srsRequirements.test.js` | 33 | SRS requirements: IDs, timestamps, curfew, RBAC |
+| `__tests__/authMiddleware.test.js` | 9 | Auth middleware role/token tests |
+| `__tests__/authController.test.js` | 9 | JWT generation, login/register branches |
+| `__tests__/userModel.test.js` | 7 | Password hashing, schema defaults |
+| `__tests__/complaintModel.test.js` | 10 | Status transitions, urgency validation |
+| `__tests__/visitorLogic.test.js` | 18 | Curfew logic, visitor type validation |
 
-This file contains **33 white-box unit tests** covering 6 previously untested SRS requirements and RBAC test cases.
+**Total: 190 tests across 10 test suites**
+
+---
+
+## Smoke Testing (`smoke.test.js`)
+
+**Purpose:** Confirms the system is stable enough for further testing.
+
+| Test ID | Description |
+|---|---|
+| SMOKE-001 to 012 | All models, controllers, middleware, and utilities load without crashing |
+| SMOKE-013 to 028 | All expected function exports exist (`registerUser`, `loginUser`, `createComplaint`, etc.) |
+| SMOKE-029 to 034 | Key functions execute without throwing (register, login, getComplaints, createVisitor, reportEmergency) |
+
+---
+
+## Negative Testing (`negative.test.js`)
+
+**Purpose:** Checks invalid inputs and unauthorized actions are properly rejected.
+
+| Test ID | Scenario | Expected |
+|---|---|---|
+| NEG-001 | Register with existing email | 400 "already exists" |
+| NEG-002 | Register when DB returns null | 400 "Invalid user data" |
+| NEG-003 | Register with empty name | 500 (validation error) |
+| NEG-004 | Register with invalid role | 500 (enum error) |
+| NEG-005 | Login with non-existent email | 401 |
+| NEG-006 | Login with wrong password | 401 |
+| NEG-007 | Login with unverified email | 401 "verify" |
+| NEG-008 | Login with empty credentials | 401 |
+| NEG-009 | Verify with invalid token | 400 "Invalid or expired" |
+| NEG-010 | Create complaint with invalid category | 500 |
+| NEG-011 | Create complaint with empty description | 500 |
+| NEG-012 | Update complaint with non-existent ID | 404 |
+| NEG-013 | Update urgency with invalid value | 400 "Invalid urgency" |
+| NEG-014 | Update urgency on missing complaint | 404 |
+| NEG-015 | Assign non-existent complaint | 404 |
+| NEG-016 | Maintenance jumps Open → Resolved | 400 "Cannot jump" |
+| NEG-017 | Maintenance resolves without remarks | 400 "Remarks required" |
+| NEG-018 | Create visitor without type | 400 |
+| NEG-019 | Student visitor without studentId | 400 |
+| NEG-020 | Outsider without CNIC | 400 |
+| NEG-021 | Visitor during curfew | 400 |
+| NEG-022 | Reject visitor without reason | 400 |
+| NEG-023 | Reject visitor with whitespace reason | 400 |
+| NEG-024 | Update non-existent visitor | 404 |
+| NEG-025 | Resolve non-existent emergency | 404 |
+| NEG-026 | Resident on Admin-only route | 403 |
+| NEG-027 | Maintenance on Admin-only route | 403 |
+| NEG-028 | Guard on Resident-only route | 403 |
+| NEG-029 | Resident on Admin+Maintenance route | 403 |
+| NEG-030 | Missing token → 401 | 401 |
+| NEG-031 | Invalid Bearer token → 401 | 401 |
+| NEG-032 | Non-Bearer auth header → 401 | 401 |
+| NEG-033 | Maintenance updates another worker's complaint | 403 |
+| NEG-034 | DB error in getComplaints | 500 |
+| NEG-035 | DB error in reportEmergency | 500 |
+
+---
+
+## Usability Testing (`usability.test.js`)
+
+**Purpose:** Checks whether users can complete core tasks easily. Tests full user journeys.
+
+### Flow 1: Registration → Verification → Login
+| Test ID | Step | What it verifies |
+|---|---|---|
+| USAB-001 | Register | Resident registers, gets 201 |
+| USAB-002 | Verify | Email verification sets `isVerified: true` |
+| USAB-003 | Login | Verified user receives JWT token |
+
+### Flow 2: Complaint Lifecycle
+| Test ID | Step | What it verifies |
+|---|---|---|
+| USAB-004 | Create | Resident submits complaint → 201 |
+| USAB-005 | View | Admin sees complaint in dashboard |
+| USAB-006 | Assign | Admin assigns to maintenance worker |
+| USAB-007 | Progress | Worker updates to "In Progress" |
+| USAB-008 | Resolve | Worker resolves with remarks |
+| USAB-009 | Confirm | Resident sees "Resolved" status |
+
+### Flow 3: Visitor Registration → Approval
+| Test ID | Step | What it verifies |
+|---|---|---|
+| USAB-010 | Register | Resident registers visitor → 201 |
+| USAB-011 | Queue | Admin sees pending visitor |
+| USAB-012 | Approve | Admin approves visitor |
+| USAB-013 | Confirm | Resident sees "Approved" status |
+
+### Flow 4: Emergency Report → Resolution
+| Test ID | Step | What it verifies |
+|---|---|---|
+| USAB-014 | Report | Resident reports emergency → 201 |
+| USAB-015 | Alert | Admin sees active emergency |
+| USAB-016 | Resolve | Admin resolves emergency |
+
+---
+
+## Basic Performance Testing (`performance.test.js`)
+
+**Purpose:** Checks response time under normal usage on the available setup.
+
+### Individual Function Response Times (threshold: 50ms)
+| Test ID | Function | Threshold |
+|---|---|---|
+| PERF-001 | `registerUser` | < 50ms |
+| PERF-002 | `loginUser` | < 50ms |
+| PERF-003 | `createComplaint` | < 50ms |
+| PERF-004 | `getComplaints` (Resident) | < 50ms |
+| PERF-005 | `getComplaints` (Admin) | < 50ms |
+| PERF-006 | `assignComplaint` | < 50ms |
+| PERF-007 | `updateComplaintStatus` | < 50ms |
+| PERF-008 | `updateComplaintUrgency` | < 50ms |
+| PERF-009 | `createVisitor` | < 50ms |
+| PERF-010 | `updateVisitorStatus` | < 50ms |
+| PERF-011 | `reportEmergency` | < 50ms |
+| PERF-012 | `resolveEmergency` | < 50ms |
+
+### Concurrent Operations (threshold: 500ms)
+| Test ID | Scenario | Threshold |
+|---|---|---|
+| PERF-013 | 100 concurrent `getComplaints` | < 500ms |
+| PERF-014 | 100 concurrent `createComplaint` | < 500ms |
+| PERF-015 | 50 concurrent `loginUser` | < 500ms |
+| PERF-016 | 50 concurrent `createVisitor` | < 500ms |
+
+### Large Dataset Handling (threshold: 100ms)
+| Test ID | Dataset Size | Threshold |
+|---|---|---|
+| PERF-017 | 1000 complaints | < 100ms |
+| PERF-018 | 500 emergencies | < 100ms |
+| PERF-019 | 500 visitors | < 100ms |
 
 ---
 
@@ -106,14 +248,17 @@ This file contains **33 white-box unit tests** covering 6 previously untested SR
 ## Test Results
 
 ```
-Test Suites: 6 passed, 6 total
-Tests:       86 passed, 86 total
+Test Suites: 10 passed, 10 total
+Tests:       190 passed, 190 total
 ```
 
 ## Techniques Used
 
-- **Statement Coverage**: Every code path in the tested functions is exercised
+- **Smoke Testing**: Module loading, export verification, basic execution
+- **Negative Testing**: Invalid inputs, unauthorized access, DB errors, boundary violations
+- **Usability Testing**: End-to-end user flows (register→login, complaint lifecycle, visitor approval, emergency resolution)
+- **Performance Testing**: `process.hrtime.bigint()` for sub-millisecond measurement, concurrent `Promise.all()`, large dataset handling
+- **Statement Coverage**: Every code path in tested functions is exercised
 - **Branch Coverage**: All `if/else` branches tested (curfew hours, role checks, status transitions)
-- **Boundary Value Analysis**: Exact cutoff times (22:00, 06:00, 21:59, 07:00)
+- **Boundary Value Analysis**: Exact cutoff times (22:00, 06:00, 21:59, 07:00), empty strings, whitespace
 - **Mock Isolation**: Mongoose models mocked to test controller logic without database
-- **jest.spyOn(Date.now)**: Mocked time for deterministic ID uniqueness testing
