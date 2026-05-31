@@ -150,12 +150,14 @@ test('ADMIN-01: Admin dashboard workflows are reachable.', async ({ page }) => {
     await page.locator('input[type="email"]').fill(adminEmail);
     await page.locator('input[type="password"]').fill(adminPassword);
     await page.getByRole('button', { name: 'Login' }).click();
+    await page.waitForURL('**/admin', { timeout: 15000 });
   } else {
-    await page.goto('/admin');
+    await page.goto('/');
+    await page.waitForURL('**/admin', { timeout: 15000 });
   }
 
-  await expect(page.getByRole('heading', { name: /Welcome to the Control Room/i })).toBeVisible();
-  await expect(page.getByText('Total Open Tickets')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Welcome to the Control Room/i })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText('Total Open Tickets')).toBeVisible({ timeout: 10000 });
 
   await page.locator('.sidebar-nav li', { hasText: 'Complaints' }).click();
   await expect(page.getByRole('heading', { name: /The Maintenance "Control Room"/i })).toBeVisible();
